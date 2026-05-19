@@ -2,7 +2,7 @@
 // Body: { subscription, reminder_time?, tz?, user_agent? }
 // Header: Authorization: Bearer <supabase access token>
 
-import { adminClient, getUserFromToken } from './_lib/supabase-admin';
+import { adminClient, getUserFromToken } from './_lib/supabase-admin.js';
 
 export const config = { runtime: 'nodejs' };
 

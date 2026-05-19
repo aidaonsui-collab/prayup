@@ -4,7 +4,7 @@
 // Protected by ?secret=$CRON_SECRET (or x-cron-secret header).
 
 import webpush from 'web-push';
-import { adminClient } from './_lib/supabase-admin';
+import { adminClient } from './_lib/supabase-admin.js';
 
 export const config = { runtime: 'nodejs' };
 

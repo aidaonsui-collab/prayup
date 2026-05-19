@@ -1,7 +1,7 @@
 // POST /api/unsubscribe — remove a push subscription for the authed user.
 // Body: { endpoint }
 
-import { adminClient, getUserFromToken } from './_lib/supabase-admin';
+import { adminClient, getUserFromToken } from './_lib/supabase-admin.js';
 
 export const config = { runtime: 'nodejs' };
 

@@ -1,7 +1,7 @@
 // Vercel serverless function: POST /api/prayer
 // Generates a short personalized prayer via MiniMax M2.7.
 
-import { generatePrayer, type PrayerRequest } from './_lib/prayer-handler';
+import { generatePrayer, type PrayerRequest } from './_lib/prayer-handler.js';
 
 export const config = { runtime: 'nodejs' };
 

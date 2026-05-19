@@ -1,7 +1,7 @@
 // Shared MiniMax-backed prayer handler.
 // Used by api/prayer.ts (Vercel serverless) and the Vite dev middleware.
 
-import { MOODS, VERSE_BY_MOOD, type MoodId } from '../../src/lib/data';
+import { MOODS, VERSE_BY_MOOD, type MoodId } from '../../src/lib/data.js';
 
 type PrayerRequest = {
   mood: MoodId;
