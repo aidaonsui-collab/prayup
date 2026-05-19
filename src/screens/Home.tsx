@@ -5,6 +5,7 @@ import { Wordmark } from '../components/Wordmark';
 import { Icon } from '../components/Icon';
 import { TabBar } from '../components/TabBar';
 import { SectionTitle } from '../components/SectionTitle';
+import { useState } from 'react';
 import {
   formatRelativeDate,
   getRecentEntries,
@@ -12,6 +13,7 @@ import {
   getThisWeek,
   useJourneyVersion,
 } from '../lib/journey';
+import { getDisplayName, getProfile, useProfile } from '../lib/profile';
 
 function StatCard({ label, value, unit, icon }: { label: string; value: string | number; unit: string; icon: React.ReactNode }) {
   return (
@@ -35,6 +37,8 @@ function StatCard({ label, value, unit, icon }: { label: string; value: string |
 export function Home() {
   const nav = useNavigate();
   useJourneyVersion();
+  const [profile, setProfile] = useProfile();
+  const name = getDisplayName('friend');
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const streak = getStreak();
   const weekDone = getThisWeek();
@@ -42,13 +46,28 @@ export function Home() {
   const todayDow = (new Date().getDay() + 6) % 7; // Mon-based
   const recent = getRecentEntries(2);
 
+  const [addingCarry, setAddingCarry] = useState(false);
+  const [carryDraft, setCarryDraft] = useState('');
+  const addCarry = (label: string) => {
+    const v = label.trim();
+    if (!v) return;
+    const cur = getProfile().carrying;
+    setProfile({ carrying: Array.from(new Set([...cur, v])) });
+    setCarryDraft('');
+    setAddingCarry(false);
+  };
+  const removeCarry = (label: string) => {
+    const cur = getProfile().carrying;
+    setProfile({ carrying: cur.filter((c) => c !== label) });
+  };
+
   return (
     <div style={{ position: 'relative', height: '100%', overflow: 'auto' }}>
       <CreamBG />
       <div style={{ position: 'relative', zIndex: 1, padding: '72px 24px 110px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 26 }}>
           <Wordmark size={20} />
-          <button style={{
+          <button onClick={() => nav('/settings')} aria-label="Notifications" style={{
             width: 38, height: 38, borderRadius: '50%',
             background: 'rgba(255,255,255,0.6)', border: '1px solid var(--hairline)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -65,7 +84,7 @@ export function Home() {
         <h1 style={{
           fontFamily: 'var(--serif-display)', fontWeight: 500, fontSize: 34, lineHeight: 1.1,
           letterSpacing: '-0.02em', color: 'var(--ink)', margin: '0 0 6px',
-        }}>Welcome back, <em style={{ color: 'var(--gold-dim)', fontStyle: 'italic' }}>Daniel.</em></h1>
+        }}>Welcome back, <em style={{ color: 'var(--gold-dim)', fontStyle: 'italic' }}>{name}.</em></h1>
         <p style={{ fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink-muted)', margin: '0 0 24px' }}>
           Take a breath. Today is held.
         </p>
@@ -141,19 +160,42 @@ export function Home() {
 
         <SectionTitle>What you're carrying</SectionTitle>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
-          {['Work stress', 'My family', 'Healing', 'Patience', '+ Add'].map((t, i) => {
-            const isAdd = i === 4;
-            return (
-              <div key={t} style={{
-                fontFamily: 'var(--sans)', fontSize: 13, fontWeight: isAdd ? 500 : 400,
-                padding: '9px 14px', borderRadius: 9999,
-                background: isAdd ? 'transparent' : 'rgba(255,255,255,0.7)',
-                border: isAdd ? '1px dashed rgba(15,23,42,0.25)' : '1px solid var(--hairline)',
-                color: isAdd ? 'var(--ink-muted)' : 'var(--ink)',
-                cursor: 'pointer',
-              }}>{t}</div>
-            );
-          })}
+          {profile.carrying.map((t) => (
+            <button key={t} onClick={() => removeCarry(t)} title="Tap to remove" style={{
+              fontFamily: 'var(--sans)', fontSize: 13,
+              padding: '9px 14px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.7)',
+              border: '1px solid var(--hairline)',
+              color: 'var(--ink)', cursor: 'pointer',
+            }}>{t}</button>
+          ))}
+          {addingCarry ? (
+            <form onSubmit={(e) => { e.preventDefault(); addCarry(carryDraft); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                autoFocus
+                value={carryDraft}
+                onChange={(e) => setCarryDraft(e.target.value)}
+                onBlur={() => { if (!carryDraft.trim()) setAddingCarry(false); }}
+                placeholder="What's on your heart?"
+                maxLength={28}
+                style={{
+                  fontFamily: 'var(--sans)', fontSize: 13,
+                  padding: '8px 14px', borderRadius: 9999,
+                  background: 'rgba(255,255,255,0.85)',
+                  border: '1px solid var(--gold-soft)',
+                  color: 'var(--ink)', outline: 'none', minWidth: 0, width: 160,
+                }}
+              />
+            </form>
+          ) : (
+            <button onClick={() => setAddingCarry(true)} style={{
+              fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
+              padding: '9px 14px', borderRadius: 9999,
+              background: 'transparent',
+              border: '1px dashed rgba(15,23,42,0.25)',
+              color: 'var(--ink-muted)', cursor: 'pointer',
+            }}>+ Add</button>
+          )}
         </div>
 
         {recent.length > 0 && (

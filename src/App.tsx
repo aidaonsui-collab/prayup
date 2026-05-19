@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useLocalState } from './lib/state';
 import type { MoodId, TemplateId } from './lib/data';
 import { RitualContext } from './screens/ritual/state';
+import { AuthProvider, useAuth } from './lib/auth';
+import { useSync } from './lib/sync';
 
 import { Landing } from './screens/Landing';
 import { Onboard } from './screens/Onboard';
@@ -17,6 +19,12 @@ import { Space } from './screens/ritual/Space';
 import { Intention } from './screens/ritual/Intention';
 import { Complete } from './screens/ritual/Complete';
 
+function SyncBridge() {
+  const { user } = useAuth();
+  useSync(user?.id ?? null);
+  return null;
+}
+
 export function App() {
   const [mood, setMood] = useLocalState<MoodId>('prayup.mood', 'anxious');
   const [heart, setHeart] = useLocalState<string>('prayup.heart', '');
@@ -29,29 +37,32 @@ export function App() {
   );
 
   return (
-    <RitualContext.Provider value={ritualCtx}>
-      <div className="pu-app">
-        <div className="pu-screen">
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/onboard/:step" element={<Onboard />} />
-              <Route path="/home" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/ritual" element={<Navigate to="/ritual/welcome" replace />} />
-              <Route path="/ritual/welcome" element={<Welcome />} />
-              <Route path="/ritual/checkin" element={<Checkin />} />
-              <Route path="/ritual/scripture" element={<Scripture />} />
-              <Route path="/ritual/prayer" element={<Prayer />} />
-              <Route path="/ritual/space" element={<Space />} />
-              <Route path="/ritual/intention" element={<Intention />} />
-              <Route path="/ritual/complete" element={<Complete />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+    <AuthProvider>
+      <SyncBridge />
+      <RitualContext.Provider value={ritualCtx}>
+        <div className="pu-app">
+          <div className="pu-screen">
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/onboard/:step" element={<Onboard />} />
+                <Route path="/home" element={<Home />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/ritual" element={<Navigate to="/ritual/welcome" replace />} />
+                <Route path="/ritual/welcome" element={<Welcome />} />
+                <Route path="/ritual/checkin" element={<Checkin />} />
+                <Route path="/ritual/scripture" element={<Scripture />} />
+                <Route path="/ritual/prayer" element={<Prayer />} />
+                <Route path="/ritual/space" element={<Space />} />
+                <Route path="/ritual/intention" element={<Intention />} />
+                <Route path="/ritual/complete" element={<Complete />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </div>
         </div>
-      </div>
-    </RitualContext.Provider>
+      </RitualContext.Provider>
+    </AuthProvider>
   );
 }

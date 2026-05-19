@@ -7,6 +7,9 @@ type PrayerRequest = {
   mood: MoodId;
   heart?: string;
   verse?: { body: string; ref: string };
+  focusAreas?: string[];
+  // 0 = default; positive integers nudge temperature up for re-wordings.
+  rewordings?: number;
 };
 
 const MINIMAX_BASE_URL = process.env.MINIMAX_BASE_URL || 'https://api.minimaxi.chat/v1';
@@ -30,13 +33,21 @@ function buildUserPrompt(req: PrayerRequest): string {
   const heartLine = req.heart && req.heart.trim()
     ? `What is on my heart today: ${req.heart.trim()}`
     : 'I have not written anything specific today.';
+  const focusLine = req.focusAreas && req.focusAreas.length
+    ? `Recurring focus areas in my life: ${req.focusAreas.join(', ')}.`
+    : '';
+  const rewordLine = req.rewordings && req.rewordings > 0
+    ? 'I have heard this prayer before — please reword it freshly, with different imagery and rhythm, while keeping the same posture.'
+    : '';
 
   return [
     `My heart today: ${mood.label.toLowerCase()} — ${mood.sub.toLowerCase()}.`,
     `The verse I received: "${verse.body}" — ${verse.ref}.`,
+    focusLine,
     heartLine,
+    rewordLine,
     'Please write the prayer for me.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 export async function generatePrayer(req: PrayerRequest): Promise<{ prayer: string; source: 'minimax' | 'fallback'; error?: string }> {
@@ -58,7 +69,7 @@ export async function generatePrayer(req: PrayerRequest): Promise<{ prayer: stri
           { role: 'system', content: buildSystemPrompt() },
           { role: 'user', content: buildUserPrompt(req) },
         ],
-        temperature: 0.7,
+        temperature: Math.min(1.0, 0.7 + 0.1 * (req.rewordings ?? 0)),
         max_tokens: 800,
       }),
       signal: AbortSignal.timeout(20_000),

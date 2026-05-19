@@ -11,9 +11,18 @@ export type RitualEntry = {
   template: TemplateId;
   heart?: string;
   intention?: string;
+  reflection?: string;
   verseRef?: string;
   completedAt: number; // ms since epoch
 };
+
+export function updateTodaysReflection(reflection: string) {
+  const entries = read();
+  const idx = entries.findIndex((e) => e.date === todayKey());
+  if (idx < 0) return;
+  entries[idx] = { ...entries[idx], reflection };
+  write(entries);
+}
 
 const KEY = 'prayup.journey.entries';
 

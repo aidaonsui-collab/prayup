@@ -18,7 +18,7 @@ const supportsSW = 'serviceWorker' in navigator;
 const supportsPush = 'PushManager' in window;
 const supportsNotif = 'Notification' in window;
 
-const VAPID_PUBLIC_KEY = 'BNQc3jR8YXKQ8mNbXkV9k5_3GxJ9LXf6X7zJ7eW8Q9j5_3WfYn7B8c9pQ2-DEMOKEY';
+const VAPID_PUBLIC_KEY = (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined) ?? '';
 
 let swReg: ServiceWorkerRegistration | null = null;
 let currentSub: PushSubscription | null = null;
@@ -113,8 +113,8 @@ function urlBase64ToUint8Array(base64: string) {
   return out;
 }
 
-export async function subscribePush() {
-  if (!swReg || !supportsPush) return null;
+export async function subscribePush(opts?: { reminderTime?: string; accessToken?: string }) {
+  if (!swReg || !supportsPush || !VAPID_PUBLIC_KEY) return null;
   if (Notification.permission !== 'granted') {
     const perm = await requestPermission();
     if (perm !== 'granted') return null;
@@ -125,7 +125,29 @@ export async function subscribePush() {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
     currentSub = sub;
-    console.info('[PrayUp PWA] push subscription:', sub.toJSON());
+
+    // Persist server-side (only meaningful when authed; endpoint silently
+    // skips if no access token is provided).
+    if (opts?.accessToken) {
+      try {
+        await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${opts.accessToken}`,
+          },
+          body: JSON.stringify({
+            subscription: sub.toJSON(),
+            reminder_time: opts.reminderTime,
+            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            user_agent: navigator.userAgent.slice(0, 200),
+          }),
+        });
+      } catch (err) {
+        console.warn('[PrayUp PWA] /api/subscribe failed', err);
+      }
+    }
+
     emit();
     return sub;
   } catch (err) {
@@ -134,12 +156,25 @@ export async function subscribePush() {
   }
 }
 
-export async function unsubscribePush() {
+export async function unsubscribePush(opts?: { accessToken?: string }) {
   if (!swReg) return false;
   const sub = await swReg.pushManager.getSubscription();
   if (!sub) return false;
+  const endpoint = sub.endpoint;
   const ok = await sub.unsubscribe();
   currentSub = null;
+  if (opts?.accessToken) {
+    try {
+      await fetch('/api/unsubscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${opts.accessToken}`,
+        },
+        body: JSON.stringify({ endpoint }),
+      });
+    } catch { /* best effort */ }
+  }
   emit();
   return ok;
 }

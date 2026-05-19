@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RitualShell } from './RitualShell';
 import { useRitual } from './state';
-import { PRAYER_BY_MOOD, PRAYER_TEMPLATES, VERSE_BY_MOOD, type TemplateId } from '../../lib/data';
+import { PRAYER_BY_MOOD, PRAYER_TEMPLATES, type TemplateId } from '../../lib/data';
 import { PUButton } from '../../components/PUButton';
 import { Icon } from '../../components/Icon';
 import { usePersonalPrayer } from '../../lib/usePersonalPrayer';
+import { useVerseForMood } from '../../lib/bible';
+import { isPrayerSaved, savePrayer, useProfile } from '../../lib/profile';
 
 export function Prayer() {
   const nav = useNavigate();
   const { mood, heart, template, setTemplate } = useRitual();
+  const [profile] = useProfile();
 
   const tpl = PRAYER_TEMPLATES.find((t) => t.id === template) ?? PRAYER_TEMPLATES[0];
-  const verse = VERSE_BY_MOOD[mood] ?? VERSE_BY_MOOD.hopeful;
-  const ai = usePersonalPrayer({ mood, heart, verse, enabled: tpl.id === 'personal' });
+  const { verse } = useVerseForMood(mood);
+  const ai = usePersonalPrayer({ mood, heart, verse, focusAreas: profile.focusAreas, enabled: tpl.id === 'personal' });
 
   const fallbackText = tpl.id === 'personal'
     ? (PRAYER_BY_MOOD[mood] ?? PRAYER_BY_MOOD.hopeful)
@@ -22,11 +25,29 @@ export function Prayer() {
   const showingAi = tpl.id === 'personal' && ai.source === 'ai' && !!ai.prayer;
 
   const [visible, setVisible] = useState(false);
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     setVisible(false);
     const t = setTimeout(() => setVisible(true), 80);
     return () => clearTimeout(t);
   }, [template, ai.prayer]);
+
+  useEffect(() => { setSaved(isPrayerSaved(prayerText)); }, [prayerText]);
+
+  const handleSave = () => {
+    if (saved || !prayerText) return;
+    savePrayer({ text: prayerText, template: tpl.id, mood, verseRef: verse.ref });
+    setSaved(true);
+  };
+
+  const handleReword = () => {
+    if (tpl.id !== 'personal') {
+      // Switching to personal also implicitly fires the AI.
+      setTemplate('personal' as TemplateId);
+      return;
+    }
+    ai.reword();
+  };
 
   return (
     <RitualShell step={3} total={5} onBack={() => nav('/ritual/scripture')} onClose={() => nav('/home')}>
@@ -122,25 +143,27 @@ export function Prayer() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, margin: '14px 0 10px' }}>
-        <button style={{
+        <button onClick={handleReword} disabled={ai.loading} style={{
           flex: 1, fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
           padding: '12px', borderRadius: 9999,
           background: 'rgba(255,255,255,0.65)', border: '1px solid var(--hairline)',
-          color: 'var(--ink)', cursor: 'pointer',
+          color: ai.loading ? 'var(--ink-faint)' : 'var(--ink)',
+          cursor: ai.loading ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
           <Icon.Sparkle size={14} c="var(--ink-muted)" />
-          Personalize
+          {tpl.id === 'personal' ? 'Try another wording' : 'Personalize for me'}
         </button>
-        <button style={{
+        <button onClick={handleSave} disabled={saved || !prayerText} style={{
           flex: 1, fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
           padding: '12px', borderRadius: 9999,
-          background: 'rgba(255,255,255,0.65)', border: '1px solid var(--hairline)',
-          color: 'var(--ink)', cursor: 'pointer',
+          background: saved ? 'rgba(201,162,39,0.18)' : 'rgba(255,255,255,0.65)',
+          border: saved ? '1px solid rgba(201,162,39,0.4)' : '1px solid var(--hairline)',
+          color: 'var(--ink)', cursor: saved ? 'default' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
-          <Icon.Heart size={14} c="var(--ink-muted)" />
-          Save
+          <Icon.Heart size={14} c={saved ? 'var(--gold-dim)' : 'var(--ink-muted)'} filled={saved} />
+          {saved ? 'Saved' : 'Save'}
         </button>
       </div>
 

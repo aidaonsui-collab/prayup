@@ -4,11 +4,13 @@ import { CreamBG } from '../../components/CreamBG';
 import { BreathingOrb } from '../../components/BreathingOrb';
 import { PUButton } from '../../components/PUButton';
 import { Icon } from '../../components/Icon';
+import { getDisplayName } from '../../lib/profile';
 
 export function Welcome() {
   const nav = useNavigate();
   const hour = new Date().getHours();
   const greeting = hour < 5 ? 'A late hour' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const name = getDisplayName('friend');
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 60);
@@ -46,7 +48,7 @@ export function Welcome() {
           <p style={{
             fontFamily: 'var(--sans)', fontSize: 11, letterSpacing: '0.32em',
             textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 14px',
-          }}>{greeting}, Daniel</p>
+          }}>{greeting}, {name}</p>
 
           <h2 style={{
             fontFamily: 'var(--serif-display)', fontWeight: 500, fontSize: 34,

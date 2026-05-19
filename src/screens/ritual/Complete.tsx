@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LightRays } from '../../components/LightRays';
-import { PUButton, PUTextLink } from '../../components/PUButton';
+import { PUButton } from '../../components/PUButton';
 import { Icon } from '../../components/Icon';
 import { useRitual } from './state';
 import { VERSE_BY_MOOD } from '../../lib/data';
-import { getStreak, recordEntry } from '../../lib/journey';
+import { getStreak, recordEntry, updateTodaysReflection } from '../../lib/journey';
 
 export function Complete() {
   const nav = useNavigate();
   const { mood, heart, template, intention } = useRitual();
   const [phase, setPhase] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [reflectOpen, setReflectOpen] = useState(false);
+  const [reflection, setReflection] = useState('');
   const recordedRef = useRef(false);
 
   // Record this completion exactly once (guards against StrictMode double-mount).
@@ -160,10 +162,36 @@ export function Complete() {
           width: '100%', display: 'flex', flexDirection: 'column', gap: 10,
           opacity: phase >= 3 ? 1 : 0, transition: 'opacity 700ms ease 200ms',
         }}>
+          {!reflectOpen ? (
+            <button onClick={() => setReflectOpen(true)} style={{
+              background: 'rgba(255,255,255,0.6)', border: '1px solid var(--hairline)',
+              borderRadius: 9999, padding: '12px 18px',
+              fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink-muted)',
+              cursor: 'pointer', textAlign: 'center',
+            }}>Leave a brief reflection</button>
+          ) : (
+            <div style={{
+              background: 'rgba(255,255,255,0.7)', border: '1px solid var(--hairline)',
+              borderRadius: 'var(--r-md)', padding: 14, textAlign: 'left',
+            }}>
+              <textarea
+                value={reflection}
+                onChange={(e) => { setReflection(e.target.value); updateTodaysReflection(e.target.value); }}
+                placeholder="A note for future you — what shifted, what God whispered, anything at all."
+                rows={3}
+                autoFocus
+                style={{
+                  width: '100%', resize: 'none', border: 'none', outline: 'none',
+                  background: 'transparent', fontFamily: 'var(--serif)', fontStyle: 'italic',
+                  fontSize: 14, lineHeight: 1.5, color: 'var(--ink)', padding: 0,
+                }}
+              />
+              <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, color: 'var(--ink-faint)', margin: '6px 0 0', textAlign: 'center' }}>
+                Saved as you type.
+              </p>
+            </div>
+          )}
           <PUButton variant="primary" onClick={() => nav('/home')}>Proceed with my day</PUButton>
-          <PUTextLink onClick={() => nav('/home')} style={{ textAlign: 'center', alignSelf: 'center' }}>
-            Leave a brief reflection
-          </PUTextLink>
         </div>
       </div>
     </div>

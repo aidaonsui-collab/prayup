@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RitualShell } from './RitualShell';
 import { useRitual } from './state';
-import { VERSE_BY_MOOD } from '../../lib/data';
+import { useVerseForMood } from '../../lib/bible';
 import { PUButton, PUTextLink } from '../../components/PUButton';
 
 export function Scripture() {
   const nav = useNavigate();
   const { mood } = useRitual();
-  const verse = VERSE_BY_MOOD[mood] ?? VERSE_BY_MOOD.hopeful;
+  const { verse, loading: verseLoading } = useVerseForMood(mood);
   const words = verse.body.split(' ');
   const [shown, setShown] = useState(0);
 
   useEffect(() => {
+    if (verseLoading) return;
+    setShown(0);
     let i = 0;
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
@@ -25,7 +27,7 @@ export function Scripture() {
       clearTimeout(initial);
       clearTimeout(timer);
     };
-  }, [words.length]);
+  }, [words.length, verseLoading]);
 
   return (
     <RitualShell step={2} total={5} onBack={() => nav('/ritual/checkin')} onClose={() => nav('/home')}>

@@ -6,6 +6,14 @@ import { TabBar } from '../components/TabBar';
 import { SectionTitle } from '../components/SectionTitle';
 import { useLocalState } from '../lib/state';
 import { PrayUpPWA, type PWAState } from '../lib/pwa';
+import {
+  FOCUS_AREA_OPTIONS,
+  deleteSavedPrayer,
+  getProfile,
+  useProfile,
+  useSavedPrayers,
+} from '../lib/profile';
+import { useAuth } from '../lib/auth';
 
 function permLabel(perm: PWAState['permission'], subscribed: boolean) {
   if (perm === 'unsupported') return 'Not supported on this device';
@@ -82,19 +90,35 @@ export function Settings() {
     return PrayUpPWA.subscribe(setPwa);
   }, []);
 
+  const [profile, setProfile] = useProfile();
+  const savedPrayers = useSavedPrayers();
+  const auth = useAuth();
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState('');
   const [remindersOn, setRemindersOn] = useLocalState<boolean>('prayup.reminders', false);
   const [reminderTime, setReminderTime] = useLocalState<string>('prayup.reminderTime', '07:00');
+  const toggleFocus = (label: string) => {
+    const cur = getProfile().focusAreas;
+    const next = cur.includes(label) ? cur.filter((x) => x !== label) : [...cur, label];
+    setProfile({ focusAreas: next });
+  };
 
   const toggleReminders = async () => {
     if (!remindersOn) {
       const perm = await PrayUpPWA.requestPermission();
       if (perm === 'granted') {
-        await PrayUpPWA.subscribePush();
+        await PrayUpPWA.subscribePush({
+          reminderTime,
+          accessToken: auth.session?.access_token,
+        });
         setRemindersOn(true);
+        setProfile({ reminderEnabled: true, reminderTime });
       }
     } else {
-      await PrayUpPWA.unsubscribePush();
+      await PrayUpPWA.unsubscribePush({ accessToken: auth.session?.access_token });
       setRemindersOn(false);
+      setProfile({ reminderEnabled: false });
     }
   };
 
@@ -117,42 +141,50 @@ export function Settings() {
             background: 'linear-gradient(135deg, #E8D38A 0%, #C9A227 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--serif-display)', fontSize: 22, color: '#1A1408', fontWeight: 500,
-          }}>D</div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: 'var(--serif-display)', fontSize: 18, fontWeight: 500, margin: '0 0 2px', letterSpacing: '-0.01em' }}>Daniel Park</p>
-            <p style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--ink-muted)', margin: 0 }}>Member since March 2026</p>
+            flexShrink: 0,
+          }}>{(profile.displayName.trim().charAt(0) || '·').toUpperCase()}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--ink-faint)', margin: '0 0 4px' }}>Your name</p>
+            <input
+              type="text"
+              value={profile.displayName}
+              onChange={(e) => setProfile({ displayName: e.target.value })}
+              placeholder="What should we call you?"
+              maxLength={40}
+              style={{
+                width: '100%', border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: 'var(--serif-display)', fontSize: 18, fontWeight: 500,
+                letterSpacing: '-0.01em', color: 'var(--ink)', padding: 0,
+              }}
+            />
           </div>
-          <Icon.Arrow dir="right" size={16} c="var(--ink-faint)" />
         </div>
 
         <SettingsGroup title="Practice">
-          <SettingsRow icon={<Icon.Bell size={18} c="var(--ink)" />} label="Daily reminder" value={reminderTime} />
-          <SettingsRow icon={<Icon.Heart size={18} c="var(--ink)" />} label="Focus areas" value="4 selected" />
-          <SettingsRow icon={<Icon.Book size={18} c="var(--ink)" />} label="Bible translation" value="ESV" />
+          <SettingsRow icon={<Icon.Bell size={18} c="var(--ink)" />} label="Daily reminder" value={remindersOn ? reminderTime : 'off'} />
+          <SettingsRow icon={<Icon.Heart size={18} c="var(--ink)" />} label="Focus areas" value={`${profile.focusAreas.length} selected`} />
+          <SettingsRow icon={<Icon.Book size={18} c="var(--ink)" />} label="Bible translation" value="WEB" />
           <SettingsRow icon={<Icon.Sparkle size={18} c="var(--ink)" />} label="Prayer length" value="2 min" isLast />
         </SettingsGroup>
 
         <SectionTitle>Your focus areas</SectionTitle>
+        <p style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--ink-muted)', margin: '-4px 0 12px' }}>
+          The themes the prayer should weave in when you're praying for yourself.
+        </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-          {[
-            { label: 'Anxiety', on: true },
-            { label: 'Work', on: true },
-            { label: 'Family', on: true },
-            { label: 'Healing', on: true },
-            { label: 'Patience', on: false },
-            { label: 'Gratitude', on: false },
-            { label: 'Direction', on: false },
-            { label: '+ Add', on: false, add: true },
-          ].map((c) => (
-            <div key={c.label} style={{
-              fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
-              padding: '8px 14px', borderRadius: 9999,
-              background: c.on ? 'var(--ink)' : 'rgba(255,255,255,0.7)',
-              color: c.on ? 'var(--cream)' : c.add ? 'var(--ink-muted)' : 'var(--ink)',
-              border: c.on ? 'none' : c.add ? '1px dashed rgba(15,23,42,0.25)' : '1px solid var(--hairline)',
-              cursor: 'pointer',
-            }}>{c.label}</div>
-          ))}
+          {FOCUS_AREA_OPTIONS.map((label) => {
+            const on = profile.focusAreas.includes(label);
+            return (
+              <button key={label} onClick={() => toggleFocus(label)} style={{
+                fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
+                padding: '8px 14px', borderRadius: 9999,
+                background: on ? 'var(--ink)' : 'rgba(255,255,255,0.7)',
+                color: on ? 'var(--cream)' : 'var(--ink)',
+                border: on ? 'none' : '1px solid var(--hairline)',
+                cursor: 'pointer', transition: 'all 160ms ease',
+              }}>{label}</button>
+            );
+          })}
         </div>
 
         <SectionTitle>Daily reminder</SectionTitle>
@@ -213,6 +245,81 @@ export function Settings() {
           </button>
         </div>
 
+        {auth.enabled && (
+          <div style={{ marginBottom: 24 }}>
+            <SectionTitle>{auth.user ? 'Sync' : 'Sync across devices'}</SectionTitle>
+            <div style={{
+              background: 'rgba(255,255,255,0.65)', border: '1px solid var(--hairline)',
+              borderRadius: 'var(--r-lg)', padding: '18px',
+            }}>
+              {auth.user ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'rgba(124,139,122,0.18)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}><Icon.Check size={16} c="var(--sage)" stroke={2.4} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {auth.user.email}
+                    </p>
+                    <p style={{ fontFamily: 'var(--sans)', fontSize: 11.5, color: 'var(--ink-muted)', margin: '2px 0 0' }}>
+                      Your journey syncs to all your devices.
+                    </p>
+                  </div>
+                  <button onClick={() => auth.signOut()} style={{
+                    fontFamily: 'var(--sans)', fontSize: 12, fontWeight: 500,
+                    padding: '8px 14px', borderRadius: 9999,
+                    background: 'rgba(15,23,42,0.05)', border: '1px solid var(--hairline)',
+                    color: 'var(--ink)', cursor: 'pointer',
+                  }}>Sign out</button>
+                </div>
+              ) : emailSent ? (
+                <>
+                  <p style={{ fontFamily: 'var(--serif-display)', fontSize: 17, fontWeight: 500, margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+                    Check your email.
+                  </p>
+                  <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink-muted)', margin: 0, lineHeight: 1.5 }}>
+                    We sent a sign-in link to <strong>{emailDraft}</strong>. Tap it to come back here.
+                  </p>
+                </>
+              ) : (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setEmailError('');
+                  const { error } = await auth.signInWithEmail(emailDraft);
+                  if (error) setEmailError(error);
+                  else setEmailSent(true);
+                }}>
+                  <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                    Keep your streak and journey on every device. We'll email you a sign-in link.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="email" required
+                      value={emailDraft}
+                      onChange={(e) => setEmailDraft(e.target.value)}
+                      placeholder="you@example.com"
+                      style={{
+                        flex: 1, fontFamily: 'var(--sans)', fontSize: 14,
+                        padding: '10px 14px', borderRadius: 9999,
+                        background: 'rgba(255,255,255,0.85)', border: '1px solid var(--hairline)',
+                        color: 'var(--ink)', outline: 'none',
+                      }}
+                    />
+                    <button type="submit" style={{
+                      fontFamily: 'var(--sans)', fontSize: 13, fontWeight: 500,
+                      padding: '10px 16px', borderRadius: 9999,
+                      background: 'var(--ink)', color: 'var(--cream)', border: 'none', cursor: 'pointer',
+                    }}>Send link</button>
+                  </div>
+                  {emailError && <p style={{ fontFamily: 'var(--sans)', fontSize: 11.5, color: '#C99A8D', margin: '8px 0 0' }}>{emailError}</p>}
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
         {(pwa.installable || pwa.standalone) && (
           <div style={{ marginBottom: 24 }}>
             <SectionTitle>Install</SectionTitle>
@@ -244,6 +351,37 @@ export function Settings() {
                   background: 'var(--ink)', color: 'var(--cream)', border: 'none', cursor: 'pointer',
                 }}>Install</button>
               )}
+            </div>
+          </div>
+        )}
+
+        {savedPrayers.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <SectionTitle>Saved prayers</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {savedPrayers.map((sp) => (
+                <div key={sp.id} style={{
+                  background: 'rgba(255,255,255,0.65)', border: '1px solid var(--hairline)',
+                  borderRadius: 'var(--r-md)', padding: '14px 16px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--gold-dim)' }}>
+                      {sp.template === 'personal' ? 'For you, today' : sp.template} {sp.verseRef ? `· ${sp.verseRef}` : ''}
+                    </span>
+                    <button onClick={() => deleteSavedPrayer(sp.id)} style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--ink-faint)', padding: 4,
+                    }} aria-label="Remove saved prayer">
+                      <Icon.Close size={14} />
+                    </button>
+                  </div>
+                  <p style={{
+                    fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14,
+                    lineHeight: 1.5, color: 'var(--ink)', margin: 0,
+                    whiteSpace: 'pre-wrap',
+                  }}>{sp.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
