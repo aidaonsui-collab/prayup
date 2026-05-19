@@ -1,16 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LightRays } from '../../components/LightRays';
 import { PUButton, PUTextLink } from '../../components/PUButton';
 import { Icon } from '../../components/Icon';
 import { useRitual } from './state';
-
-const STREAK = 17;
+import { VERSE_BY_MOOD } from '../../lib/data';
+import { getStreak, recordEntry } from '../../lib/journey';
 
 export function Complete() {
   const nav = useNavigate();
-  const { intention } = useRitual();
+  const { mood, heart, template, intention } = useRitual();
   const [phase, setPhase] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const recordedRef = useRef(false);
+
+  // Record this completion exactly once (guards against StrictMode double-mount).
+  useEffect(() => {
+    if (recordedRef.current) return;
+    recordedRef.current = true;
+    recordEntry({
+      mood,
+      template,
+      heart: heart.trim() || undefined,
+      intention: intention.trim() || undefined,
+      verseRef: VERSE_BY_MOOD[mood]?.ref,
+    });
+    setStreak(getStreak());
+  }, [mood, template, heart, intention]);
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 200);
@@ -130,10 +146,10 @@ export function Complete() {
           <Icon.Flame size={22} c="#C9A227" />
           <div style={{ textAlign: 'left' }}>
             <div style={{ fontFamily: 'var(--serif-display)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-              {STREAK} day streak
+              {streak} day{streak === 1 ? '' : 's'} of pausing
             </div>
             <div style={{ fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--ink-muted)' }}>
-              Your longest yet.
+              {streak <= 1 ? 'A quiet beginning.' : 'Faithful in small things.'}
             </div>
           </div>
         </div>

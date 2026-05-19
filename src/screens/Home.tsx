@@ -5,8 +5,13 @@ import { Wordmark } from '../components/Wordmark';
 import { Icon } from '../components/Icon';
 import { TabBar } from '../components/TabBar';
 import { SectionTitle } from '../components/SectionTitle';
-
-const STREAK = 17;
+import {
+  formatRelativeDate,
+  getRecentEntries,
+  getStreak,
+  getThisWeek,
+  useJourneyVersion,
+} from '../lib/journey';
 
 function StatCard({ label, value, unit, icon }: { label: string; value: string | number; unit: string; icon: React.ReactNode }) {
   return (
@@ -29,7 +34,13 @@ function StatCard({ label, value, unit, icon }: { label: string; value: string |
 
 export function Home() {
   const nav = useNavigate();
+  useJourneyVersion();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const streak = getStreak();
+  const weekDone = getThisWeek();
+  const weekCount = weekDone.filter(Boolean).length;
+  const todayDow = (new Date().getDay() + 6) % 7; // Mon-based
+  const recent = getRecentEntries(2);
 
   return (
     <div style={{ position: 'relative', height: '100%', overflow: 'auto' }}>
@@ -97,8 +108,8 @@ export function Home() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 22 }}>
-          <StatCard label="Current streak" value={STREAK} unit="days" icon={<Icon.Flame size={16} c="#C9A227" />} />
-          <StatCard label="This week" value="5/7" unit="rituals" icon={<Icon.Check size={16} c="#7C8B7A" />} />
+          <StatCard label="Current streak" value={streak} unit={streak === 1 ? 'day' : 'days'} icon={<Icon.Flame size={16} c="#C9A227" />} />
+          <StatCard label="This week" value={`${weekCount}/7`} unit="rituals" icon={<Icon.Check size={16} c="#7C8B7A" />} />
         </div>
 
         <SectionTitle>This week</SectionTitle>
@@ -108,8 +119,8 @@ export function Home() {
           padding: '18px 18px', display: 'flex', justifyContent: 'space-between', marginBottom: 22,
         }}>
           {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => {
-            const done = i < 5;
-            const isToday = i === 4;
+            const done = weekDone[i];
+            const isToday = i === todayDow;
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: 'var(--sans)', fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.1em' }}>{d}</span>
@@ -145,24 +156,28 @@ export function Home() {
           })}
         </div>
 
-        <SectionTitle>Recent reflections</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[
-            { date: 'Yesterday', verse: 'Philippians 4:6-7', note: 'Felt peace about the meeting.' },
-            { date: 'Mon', verse: 'Psalm 23', note: 'Slow morning. Needed this.' },
-          ].map((r) => (
-            <div key={r.date} style={{
-              background: 'rgba(255,255,255,0.55)', border: '1px solid var(--hairline)',
-              borderRadius: 'var(--r-md)', padding: '14px 16px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontFamily: 'var(--sans)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--gold-dim)' }}>{r.verse}</span>
-                <span style={{ fontFamily: 'var(--sans)', fontSize: 11, color: 'var(--ink-faint)' }}>{r.date}</span>
-              </div>
-              <p style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 15, color: 'var(--ink)', margin: 0 }}>{r.note}</p>
+        {recent.length > 0 && (
+          <>
+            <SectionTitle>Recent reflections</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recent.map((r) => {
+                const note = (r.intention && r.intention.trim()) || (r.heart && r.heart.trim()) || 'A quiet pause.';
+                return (
+                  <div key={r.date} style={{
+                    background: 'rgba(255,255,255,0.55)', border: '1px solid var(--hairline)',
+                    borderRadius: 'var(--r-md)', padding: '14px 16px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontFamily: 'var(--sans)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--gold-dim)' }}>{r.verseRef || r.mood}</span>
+                      <span style={{ fontFamily: 'var(--sans)', fontSize: 11, color: 'var(--ink-faint)' }}>{formatRelativeDate(r.date)}</span>
+                    </div>
+                    <p style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 15, color: 'var(--ink)', margin: 0 }}>{note}</p>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       <TabBar active="home" />

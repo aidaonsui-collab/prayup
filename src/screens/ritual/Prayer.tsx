@@ -2,25 +2,31 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RitualShell } from './RitualShell';
 import { useRitual } from './state';
-import { PRAYER_BY_MOOD, PRAYER_TEMPLATES, type TemplateId } from '../../lib/data';
+import { PRAYER_BY_MOOD, PRAYER_TEMPLATES, VERSE_BY_MOOD, type TemplateId } from '../../lib/data';
 import { PUButton } from '../../components/PUButton';
 import { Icon } from '../../components/Icon';
+import { usePersonalPrayer } from '../../lib/usePersonalPrayer';
 
 export function Prayer() {
   const nav = useNavigate();
-  const { mood, template, setTemplate } = useRitual();
+  const { mood, heart, template, setTemplate } = useRitual();
 
   const tpl = PRAYER_TEMPLATES.find((t) => t.id === template) ?? PRAYER_TEMPLATES[0];
-  const prayerText = tpl.id === 'personal'
+  const verse = VERSE_BY_MOOD[mood] ?? VERSE_BY_MOOD.hopeful;
+  const ai = usePersonalPrayer({ mood, heart, verse, enabled: tpl.id === 'personal' });
+
+  const fallbackText = tpl.id === 'personal'
     ? (PRAYER_BY_MOOD[mood] ?? PRAYER_BY_MOOD.hopeful)
     : (tpl.text ?? '');
+  const prayerText = tpl.id === 'personal' ? (ai.prayer ?? fallbackText) : fallbackText;
+  const showingAi = tpl.id === 'personal' && ai.source === 'ai' && !!ai.prayer;
 
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     setVisible(false);
     const t = setTimeout(() => setVisible(true), 80);
     return () => clearTimeout(t);
-  }, [template]);
+  }, [template, ai.prayer]);
 
   return (
     <RitualShell step={3} total={5} onBack={() => nav('/ritual/scripture')} onClose={() => nav('/home')}>
@@ -80,15 +86,30 @@ export function Prayer() {
           display: 'flex', alignItems: 'center', gap: 5,
         }}>
           <Icon.Sparkle size={11} c="var(--gold-dim)" />
-          {tpl.kind === 'Personalized' ? 'Personalized' : tpl.label}
+          {tpl.kind === 'Personalized'
+            ? (ai.loading ? 'Writing for you…' : showingAi ? 'For you, today' : 'Personalized')
+            : tpl.label}
         </div>
-        <p style={{
-          fontFamily: 'var(--serif)', fontSize: 17, lineHeight: 1.55,
-          color: 'var(--ink)', margin: '18px 0 0', fontStyle: 'italic',
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(8px)',
-          transition: 'opacity 800ms ease, transform 800ms ease',
-        }}>{prayerText}</p>
+        {tpl.id === 'personal' && ai.loading ? (
+          <div style={{ marginTop: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: 'var(--gold)', opacity: 0.4,
+                animation: `pu-breath-dot 1.4s ease-in-out ${i * 0.18}s infinite`,
+              }} />
+            ))}
+          </div>
+        ) : (
+          <p style={{
+            fontFamily: 'var(--serif)', fontSize: 17, lineHeight: 1.55,
+            color: 'var(--ink)', margin: '18px 0 0', fontStyle: 'italic',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(8px)',
+            transition: 'opacity 800ms ease, transform 800ms ease',
+            whiteSpace: 'pre-wrap',
+          }}>{prayerText}</p>
+        )}
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, marginTop: 22,

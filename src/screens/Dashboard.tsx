@@ -2,17 +2,38 @@ import { CreamBG } from '../components/CreamBG';
 import { LightRays } from '../components/LightRays';
 import { TabBar } from '../components/TabBar';
 import { SectionTitle } from '../components/SectionTitle';
-
-const STREAK = 17;
+import {
+  getAllEntries,
+  getMonthStats,
+  getRecentEntries,
+  getStreak,
+  getThisMonthCount,
+  getTotalCompleted,
+  getUniqueVerseCount,
+  useJourneyVersion,
+} from '../lib/journey';
+import { VERSE_BY_MOOD } from '../lib/data';
 
 export function Dashboard() {
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
-  const today = 18;
-  const completed = new Set([1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18]);
-  const firstDow = 5; // May 1, 2026 = Friday
+  useJourneyVersion();
+  const streak = getStreak();
+  const total = getTotalCompleted();
+  const thisMonth = getThisMonthCount();
+  const verseCount = getUniqueVerseCount();
+  const month = getMonthStats();
+  const { firstDow, daysInMonth, completed, today } = month;
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (const d of days) cells.push(d);
+
+  const allEntries = getAllEntries();
+  const recentVerses = getRecentEntries(3)
+    .map((e) => ({
+      ref: e.verseRef ?? VERSE_BY_MOOD[e.mood]?.ref ?? '',
+      body: VERSE_BY_MOOD[e.mood]?.body ?? '',
+    }))
+    .filter((v) => v.ref && v.body);
 
   return (
     <div style={{ position: 'relative', height: '100%', overflow: 'auto' }}>
@@ -38,7 +59,7 @@ export function Dashboard() {
               textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 8px',
             }}>Current streak</p>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontFamily: 'var(--serif-display)', fontSize: 64, fontWeight: 500, lineHeight: 1, letterSpacing: '-0.03em' }}>{STREAK}</span>
+              <span style={{ fontFamily: 'var(--serif-display)', fontSize: 64, fontWeight: 500, lineHeight: 1, letterSpacing: '-0.03em' }}>{streak}</span>
               <span style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 22, color: 'var(--ink-muted)' }}>days of pausing</span>
             </div>
             <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink-muted)', margin: '8px 0 0', lineHeight: 1.55 }}>
@@ -49,9 +70,9 @@ export function Dashboard() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 26 }}>
           {[
-            { label: 'Total', value: '47', unit: 'days' },
-            { label: 'This month', value: '16', unit: 'days' },
-            { label: 'Verses', value: '29', unit: '' },
+            { label: 'Total', value: String(total), unit: 'days' },
+            { label: 'This month', value: String(thisMonth), unit: 'days' },
+            { label: 'Verses', value: String(verseCount), unit: '' },
           ].map((s) => (
             <div key={s.label} style={{
               background: 'rgba(255,255,255,0.65)', border: '1px solid var(--hairline)',
@@ -63,7 +84,7 @@ export function Dashboard() {
           ))}
         </div>
 
-        <SectionTitle>May 2026</SectionTitle>
+        <SectionTitle>{month.monthLabel}</SectionTitle>
         <div style={{
           background: 'rgba(255,255,255,0.6)', border: '1px solid var(--hairline)',
           borderRadius: 'var(--r-lg)', padding: '16px 14px 18px', marginBottom: 22,
@@ -76,7 +97,7 @@ export function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
             {cells.map((d, i) => {
               if (d === null) return <div key={i} />;
-              const isToday = d === today;
+              const isToday = today !== null && d === today;
               const isDone = completed.has(d);
               return (
                 <div key={i} style={{
@@ -98,41 +119,89 @@ export function Dashboard() {
           </div>
         </div>
 
-        <SectionTitle>Gentle insights</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
-          {[
-            { kicker: 'Mornings', body: 'You pray most at 7:14 am, before the day begins.' },
-            { kicker: 'Themes', body: 'This week you carried work, family, and patience.' },
-            { kicker: 'Verses', body: 'You returned to Psalm 23 four times this month.' },
-          ].map((it) => (
-            <div key={it.kicker} style={{
-              background: 'rgba(255,255,255,0.55)', border: '1px solid var(--hairline)',
-              borderRadius: 'var(--r-md)', padding: '14px 16px',
-            }}>
-              <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 6px' }}>{it.kicker}</p>
-              <p style={{ fontFamily: 'var(--serif)', fontSize: 15.5, lineHeight: 1.4, color: 'var(--ink)', margin: 0, fontStyle: 'italic' }}>{it.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <SectionTitle>Verses you've prayed</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[
-            { ref: 'Psalm 23:1', body: 'The Lord is my shepherd; I shall not want.' },
-            { ref: 'Philippians 4:6', body: 'Do not be anxious about anything.' },
-            { ref: 'Isaiah 41:10', body: 'Fear not, for I am with you.' },
-          ].map((v) => (
-            <div key={v.ref} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 4px' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', marginTop: 9, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 3px' }}>{v.ref}</p>
-                <p style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14.5, color: 'var(--ink)', margin: 0, lineHeight: 1.4 }}>"{v.body}"</p>
+        {allEntries.length >= 3 && (() => {
+          const insights = deriveInsights(allEntries);
+          return (
+            <>
+              <SectionTitle>Gentle insights</SectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
+                {insights.map((it) => (
+                  <div key={it.kicker} style={{
+                    background: 'rgba(255,255,255,0.55)', border: '1px solid var(--hairline)',
+                    borderRadius: 'var(--r-md)', padding: '14px 16px',
+                  }}>
+                    <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 6px' }}>{it.kicker}</p>
+                    <p style={{ fontFamily: 'var(--serif)', fontSize: 15.5, lineHeight: 1.4, color: 'var(--ink)', margin: 0, fontStyle: 'italic' }}>{it.body}</p>
+                  </div>
+                ))}
               </div>
+            </>
+          );
+        })()}
+
+        {recentVerses.length > 0 && (
+          <>
+            <SectionTitle>Verses you've prayed</SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {recentVerses.map((v, i) => (
+                <div key={`${v.ref}-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 4px' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', marginTop: 9, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontFamily: 'var(--sans)', fontSize: 10.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--gold-dim)', margin: '0 0 3px' }}>{v.ref}</p>
+                    <p style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14.5, color: 'var(--ink)', margin: 0, lineHeight: 1.4 }}>"{v.body}"</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
+
+        {allEntries.length === 0 && (
+          <p style={{ fontFamily: 'var(--serif)', fontStyle: 'italic', fontSize: 14, color: 'var(--ink-faint)', textAlign: 'center', margin: '24px 16px 0' }}>
+            Your journey starts with the first pause. Begin today's ritual when you're ready.
+          </p>
+        )}
       </div>
       <TabBar active="dashboard" />
     </div>
   );
+}
+
+// Derive insight cards from real ritual history.
+import type { RitualEntry } from '../lib/journey';
+import { MOODS } from '../lib/data';
+
+function deriveInsights(entries: RitualEntry[]): { kicker: string; body: string }[] {
+  const out: { kicker: string; body: string }[] = [];
+
+  // Mornings: median hour of completedAt
+  const hours = entries.map((e) => new Date(e.completedAt).getHours());
+  if (hours.length) {
+    const avg = Math.round(hours.reduce((a, b) => a + b, 0) / hours.length);
+    const label = avg < 5 ? 'late night' : avg < 12 ? 'morning' : avg < 18 ? 'afternoon' : 'evening';
+    out.push({ kicker: label.charAt(0).toUpperCase() + label.slice(1), body: `You return to prayer most often in the ${label}.` });
+  }
+
+  // Themes: top 3 moods this week
+  const weekAgo = Date.now() - 7 * 86400000;
+  const recentMoods = entries.filter((e) => e.completedAt >= weekAgo).map((e) => e.mood);
+  if (recentMoods.length) {
+    const counts = new Map<string, number>();
+    for (const m of recentMoods) counts.set(m, (counts.get(m) ?? 0) + 1);
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+      .map(([id]) => MOODS.find((m) => m.id === id)?.label.toLowerCase() ?? id);
+    if (top.length) {
+      out.push({ kicker: 'Themes', body: `This week you came as ${top.join(', ')}.` });
+    }
+  }
+
+  // Verses: most-returned
+  const refCounts = new Map<string, number>();
+  for (const e of entries) if (e.verseRef) refCounts.set(e.verseRef, (refCounts.get(e.verseRef) ?? 0) + 1);
+  const topVerse = [...refCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (topVerse && topVerse[1] >= 2) {
+    out.push({ kicker: 'Verses', body: `You returned to ${topVerse[0]} ${topVerse[1]} times.` });
+  }
+
+  return out;
 }
