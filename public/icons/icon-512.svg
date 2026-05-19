@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#1B2540"></stop>
+      <stop offset="100%" stop-color="#0A1024"></stop>
+    </radialGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFF1C7"></stop>
+      <stop offset="50%" stop-color="#E8D38A" stop-opacity="0.95"></stop>
+      <stop offset="100%" stop-color="#C9A227" stop-opacity="0"></stop>
+    </radialGradient>
+    <linearGradient id="disc" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#FFF1C7"></stop>
+      <stop offset="55%" stop-color="#E8D38A"></stop>
+      <stop offset="100%" stop-color="#C9A227"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"></rect>
+  <circle cx="256" cy="256" r="234" fill="url(#sun)" opacity="0.7"></circle>
+  <g stroke="#E8D38A" stroke-opacity="0.45" stroke-width="3" stroke-linecap="round">
+    <line x1="256" y1="256" x2="256" y2="48"></line>
+    <line x1="256" y1="256" x2="118" y2="118"></line>
+    <line x1="256" y1="256" x2="394" y2="118"></line>
+    <line x1="256" y1="256" x2="54" y2="256"></line>
+    <line x1="256" y1="256" x2="458" y2="256"></line>
+    <line x1="256" y1="256" x2="154" y2="86"></line>
+    <line x1="256" y1="256" x2="358" y2="86"></line>
+  </g>
+  <circle cx="256" cy="256" r="92" fill="url(#disc)"></circle>
+  <circle cx="256" cy="256" r="92" fill="none" stroke="#C9A227" stroke-opacity="0.4" stroke-width="2"></circle>
+  <text x="256" y="300" font-family="&#39;EB Garamond&#39;, Georgia, serif" font-style="italic" font-weight="500" font-size="124" fill="#1A1408" text-anchor="middle" letter-spacing="-2">P</text>
+</svg>

@@ -1,0 +1,37 @@
+{
+  "name": "Pray Up — A sacred pause",
+  "short_name": "Pray Up",
+  "description": "Before the scroll, a sacred pause. A short prayer rooted in Scripture, made for the moment your hand reaches for the phone.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F1E5",
+  "theme_color": "#0F172A",
+  "categories": ["lifestyle", "health", "productivity"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-192.svg",  "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-512.svg",  "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "/icons/apple-touch.svg",   "sizes": "180x180", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Begin today's prayer",
+      "short_name": "Pray now",
+      "description": "Open today's ritual and pause for a moment.",
+      "url": "/?action=ritual",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Your journey",
+      "short_name": "Journey",
+      "description": "View your streak and recent prayers.",
+      "url": "/?action=dashboard",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
+}

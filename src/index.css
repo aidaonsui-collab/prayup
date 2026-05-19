@@ -1,0 +1,125 @@
+:root {
+  --ink:        #0F172A;
+  --ink-2:      #1E293B;
+  --ink-muted:  rgba(15, 23, 42, 0.62);
+  --ink-faint:  rgba(15, 23, 42, 0.42);
+  --hairline:   rgba(15, 23, 42, 0.08);
+  --hairline-2: rgba(15, 23, 42, 0.14);
+
+  --cream:      #F7F1E5;
+  --cream-2:    #EFE7D2;
+  --cream-warm: #FAF4E8;
+  --paper:      #FFFCF4;
+
+  --gold:       #C9A227;
+  --gold-soft:  #E8D38A;
+  --gold-dim:   #A0801A;
+  --gold-glow:  rgba(201, 162, 39, 0.18);
+
+  --sage:       #7C8B7A;
+  --sage-soft:  #C9D2C5;
+  --taupe:      #B8A78D;
+  --rose:       #C99A8D;
+  --sky:        #A8B7C9;
+
+  --serif:         'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+  --serif-display: 'Fraunces', 'EB Garamond', Georgia, serif;
+  --sans:          'Inter', -apple-system, system-ui, sans-serif;
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--cream);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+button { font-family: inherit; }
+input, textarea { font-family: inherit; }
+
+/* App container — full-bleed on mobile; framed on wider screens */
+.pu-app {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background:
+    radial-gradient(1100px 700px at 20% 0%, #FAEAC3 0%, transparent 55%),
+    radial-gradient(900px 600px at 90% 30%, #EAD8B4 0%, transparent 55%),
+    radial-gradient(1200px 800px at 50% 100%, #F1E3C2 0%, transparent 60%),
+    linear-gradient(180deg, #F4ECD8 0%, #ECDFC1 100%);
+  background-attachment: fixed;
+}
+
+.pu-screen {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+@media (min-width: 720px) {
+  .pu-app { padding: 32px 16px; align-items: flex-start; }
+  .pu-screen {
+    width: 402px;
+    min-height: 0;
+    height: 874px;
+    border-radius: 48px;
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Hide scrollbars inside the device screen on desktop */
+.pu-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
+}
+.pu-scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* Breathing-orb animations */
+@keyframes pu-breathe-core {
+  0%, 100% { transform: scale(0.92); filter: brightness(0.95); }
+  50%      { transform: scale(1.06); filter: brightness(1.05); }
+}
+@keyframes pu-breathe-mid {
+  0%, 100% { transform: scale(0.95); opacity: 0.8; }
+  50%      { transform: scale(1.1);  opacity: 1; }
+}
+@keyframes pu-breathe-halo {
+  0%, 100% { transform: scale(0.9);  opacity: 0.5; }
+  50%      { transform: scale(1.15); opacity: 1; }
+}
+@keyframes pu-gentle-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+@keyframes pu-breath-dot {
+  0%, 100% { opacity: 0.25; transform: scale(0.9); }
+  50%      { opacity: 1;    transform: scale(1.2); }
+}
+
+input[type='time'] {
+  appearance: none;
+  -webkit-appearance: none;
+}
